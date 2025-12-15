@@ -22,17 +22,27 @@ Choose between **KNN, SVM, Decision Tree, Random Forest** models.
 """)
 
 # -------------------- LOAD MODELS & SCALER --------------------
-folder_path = r"E:\100 Projects\2\iris-streamlit"
+folder_path = "."  # relative path to current folder (GitHub repo)
 
 # Load scaler
-scaler = pickle.load(open(f"{folder_path}\\scaler.pkl", "rb"))
+with open(f"{folder_path}/scaler.pkl", "rb") as f:
+    scaler = pickle.load(f)
 
 # Load models
+with open(f"{folder_path}/knn_model.pkl", "rb") as f:
+    knn_model = pickle.load(f)
+with open(f"{folder_path}/svm_model.pkl", "rb") as f:
+    svm_model = pickle.load(f)
+with open(f"{folder_path}/decision_tree_model.pkl", "rb") as f:
+    dt_model = pickle.load(f)
+with open(f"{folder_path}/random_forest_model.pkl", "rb") as f:
+    rf_model = pickle.load(f)
+
 models = {
-    "KNN": pickle.load(open(f"{folder_path}\\knn_model.pkl", "rb")),
-    "SVM": pickle.load(open(f"{folder_path}\\svm_model.pkl", "rb")),
-    "Decision Tree": pickle.load(open(f"{folder_path}\\decision_tree_model.pkl", "rb")),
-    "Random Forest": pickle.load(open(f"{folder_path}\\random_forest_model.pkl", "rb"))
+    "KNN": knn_model,
+    "SVM": svm_model,
+    "Decision Tree": dt_model,
+    "Random Forest": rf_model
 }
 
 # -------------------- USER INPUTS --------------------
@@ -44,8 +54,10 @@ def user_input_features():
     petal_length = st.sidebar.slider("Petal Length (cm)", 1.0, 7.0, 4.0)
     petal_width = st.sidebar.slider("Petal Width (cm)", 0.1, 2.5, 1.0)
 
-    return pd.DataFrame([[sepal_length, sepal_width, petal_length, petal_width]],
-                        columns=['sepal length (cm)','sepal width (cm)','petal length (cm)','petal width (cm)'])
+    return pd.DataFrame(
+        [[sepal_length, sepal_width, petal_length, petal_width]],
+        columns=['sepal length (cm)','sepal width (cm)','petal length (cm)','petal width (cm)']
+    )
 
 input_df = user_input_features()
 
@@ -111,5 +123,5 @@ if st.checkbox("Show Feature Importance (Tree Models Only)"):
 # -------------------- FOOTER --------------------
 st.markdown("""
 ---
-Made by **Khuzaima Amir**
+Made with ❤️ by **Khuzaima Amir**
 """)
