@@ -123,5 +123,6 @@ if st.checkbox("Show Feature Importance (Tree Models Only)"):
 # -------------------- FOOTER --------------------
 st.markdown("""
 ---
-Made with ❤️ by **Khuzaima Amir**
+Made by **Khuzaima Amir**
 """)
+
