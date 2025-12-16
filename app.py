@@ -8,50 +8,51 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.datasets import load_iris
 
-# -------------------- PAGE CONFIG --------------------
+# ==================== PAGE CONFIG ====================
 st.set_page_config(
-    page_title="🌸 Iris Flower Classification",
-    layout="centered",
-    page_icon="🌼"
+    page_title="Iris Flower Classification",
+    page_icon="🌸",
+    layout="centered"
 )
 
+# ==================== TITLE ====================
 st.title("🌸 Iris Flower Classification App")
-st.markdown("""
-Predict the **species of an Iris flower** using interactive sliders.  
-Choose between **KNN, SVM, Decision Tree, Random Forest** models.
-""")
+st.markdown(
+    """
+An interactive **Machine Learning web app** to predict the **species of an Iris flower**
+using multiple classification models.
+"""
+)
 
-# -------------------- CLASS NAME MAPPING --------------------
-class_names = {
+# ==================== CLASS NAMES ====================
+CLASS_NAMES = {
     0: "Setosa",
     1: "Versicolor",
     2: "Virginica"
 }
 
-# -------------------- LOAD MODELS & SCALER --------------------
-# ⚠️ For deployment, keep all .pkl files in same folder
-folder_path = "."
-
-scaler = pickle.load(open(f"{folder_path}/scaler.pkl", "rb"))
+# ==================== LOAD MODELS ====================
+# All files must be in the same folder for deployment
+scaler = pickle.load(open("scaler.pkl", "rb"))
 
 models = {
-    "KNN": pickle.load(open(f"{folder_path}/knn_model.pkl", "rb")),
-    "SVM": pickle.load(open(f"{folder_path}/svm_model.pkl", "rb")),
-    "Decision Tree": pickle.load(open(f"{folder_path}/decision_tree_model.pkl", "rb")),
-    "Random Forest": pickle.load(open(f"{folder_path}/random_forest_model.pkl", "rb"))
+    "KNN": pickle.load(open("knn_model.pkl", "rb")),
+    "SVM": pickle.load(open("svm_model.pkl", "rb")),
+    "Decision Tree": pickle.load(open("decision_tree_model.pkl", "rb")),
+    "Random Forest": pickle.load(open("random_forest_model.pkl", "rb"))
 }
 
-# -------------------- USER INPUTS --------------------
+# ==================== SIDEBAR INPUT ====================
 st.sidebar.header("🌿 Input Flower Features")
 
-def user_input_features():
-    sepal_length = st.sidebar.slider("Sepal Length (cm)", 4.0, 8.0, 5.5)
-    sepal_width = st.sidebar.slider("Sepal Width (cm)", 2.0, 4.5, 3.0)
-    petal_length = st.sidebar.slider("Petal Length (cm)", 1.0, 7.0, 4.0)
-    petal_width = st.sidebar.slider("Petal Width (cm)", 0.1, 2.5, 1.0)
-
+def user_inputs():
     return pd.DataFrame(
-        [[sepal_length, sepal_width, petal_length, petal_width]],
+        [[
+            st.sidebar.slider("Sepal Length (cm)", 4.0, 8.0, 5.5),
+            st.sidebar.slider("Sepal Width (cm)", 2.0, 4.5, 3.0),
+            st.sidebar.slider("Petal Length (cm)", 1.0, 7.0, 4.0),
+            st.sidebar.slider("Petal Width (cm)", 0.1, 2.5, 1.0)
+        ]],
         columns=[
             "sepal length (cm)",
             "sepal width (cm)",
@@ -60,75 +61,81 @@ def user_input_features():
         ]
     )
 
-input_df = user_input_features()
+input_df = user_inputs()
 
-# -------------------- MODEL SELECTION --------------------
 model_choice = st.sidebar.selectbox(
-    "🤖 Select Machine Learning Model",
-    ("KNN", "SVM", "Decision Tree", "Random Forest")
+    "🤖 Choose ML Model",
+    list(models.keys())
 )
 
-selected_model = models[model_choice]
+model = models[model_choice]
 
-# -------------------- SCALE INPUT (ONLY FOR KNN & SVM) --------------------
+# ==================== SCALING ====================
 if model_choice in ["KNN", "SVM"]:
-    input_scaled = scaler.transform(input_df.values)
+    input_data = scaler.transform(input_df.values)
 else:
-    input_scaled = input_df.values
+    input_data = input_df.values
 
-# -------------------- PREDICTION --------------------
-prediction = selected_model.predict(input_scaled)[0]
-predicted_species = class_names[prediction]
+# ==================== PREDICTION ====================
+prediction = model.predict(input_data)[0]
+predicted_class = CLASS_NAMES[prediction]
 
-st.subheader("🔮 Prediction Result")
-st.success(f"**Predicted Iris Species:** 🌸 {predicted_species}")
+st.markdown("### 🔮 Prediction Result")
+st.success(f"**Predicted Iris Species:** 🌸 **{predicted_class}**")
 
-# -------------------- PREDICTION PROBABILITY --------------------
-try:
-    prediction_proba = selected_model.predict_proba(input_scaled)
+# ==================== CONFIDENCE & PROBABILITY ====================
+if hasattr(model, "predict_proba"):
+    probabilities = model.predict_proba(input_data)[0]
 
-    proba_df = pd.DataFrame(
-        prediction_proba,
-        columns=[class_names[i] for i in selected_model.classes_]
+    proba_df = pd.DataFrame({
+        "Species": [CLASS_NAMES[i] for i in model.classes_],
+        "Probability": probabilities
+    }).sort_values("Probability", ascending=False)
+
+    confidence = proba_df.iloc[0]["Probability"]
+
+    st.metric(
+        label="Prediction Confidence",
+        value=f"{confidence:.2%}"
     )
 
-    proba_df = proba_df.T
-    proba_df.columns = ["Probability"]
+    st.markdown("### 📊 Class Probability Distribution")
 
-    st.subheader("📊 Prediction Probability")
-    st.dataframe(proba_df.style.format("{:.2%}"))
-
-    # Probability bar chart
     fig = px.bar(
         proba_df,
-        x=proba_df.index,
+        x="Species",
         y="Probability",
-        color=proba_df.index,
-        title="Class Probability Distribution",
-        text_auto=".2%"
+        color="Species",
+        text_auto=".2%",
+        title="Prediction Probability by Class"
     )
-    st.plotly_chart(fig)
+    st.plotly_chart(fig, use_container_width=True)
 
-except:
+    st.dataframe(
+        proba_df.style.format({"Probability": "{:.2%}"})
+    )
+
+else:
     st.info("This model does not support probability prediction.")
 
-# -------------------- OPTIONAL: EDA --------------------
-st.subheader("🔍 Exploratory Data Analysis")
+# ==================== EDA SECTION ====================
+st.markdown("---")
+st.markdown("## 🔍 Exploratory Data Analysis")
 
 iris = load_iris()
-df = pd.DataFrame(iris.data, columns=iris.feature_names)
-df["species"] = pd.Categorical.from_codes(iris.target, iris.target_names)
+eda_df = pd.DataFrame(iris.data, columns=iris.feature_names)
+eda_df["species"] = pd.Categorical.from_codes(iris.target, iris.target_names)
 
-if st.checkbox("Show Pairplot"):
-    fig = sns.pairplot(df, hue="species")
+with st.expander("📈 View Pairplot"):
+    fig = sns.pairplot(eda_df, hue="species")
     st.pyplot(fig)
 
-if st.checkbox("Show Feature Importance (Tree Models Only)"):
+with st.expander("🌲 Feature Importance (Tree Models Only)"):
     if model_choice in ["Decision Tree", "Random Forest"]:
         importance_df = pd.DataFrame({
-            "Feature": df.columns[:-1],
-            "Importance": selected_model.feature_importances_
-        }).sort_values(by="Importance", ascending=False)
+            "Feature": iris.feature_names,
+            "Importance": model.feature_importances_
+        }).sort_values("Importance", ascending=False)
 
         fig2 = px.bar(
             importance_df,
@@ -136,13 +143,27 @@ if st.checkbox("Show Feature Importance (Tree Models Only)"):
             y="Importance",
             title=f"{model_choice} Feature Importance"
         )
-        st.plotly_chart(fig2)
+        st.plotly_chart(fig2, use_container_width=True)
     else:
-        st.warning("Feature importance is available only for tree-based models.")
+        st.warning("Feature importance available only for tree-based models.")
 
-# -------------------- FOOTER --------------------
-st.markdown("""
+# ==================== ABOUT PROJECT ====================
+st.markdown("---")
+st.markdown(
+    """
+### 📌 About This Project
+- Built as part of the **100 Data Science Projects Challenge**
+- Trained and compared **KNN, SVM, Decision Tree & Random Forest**
+- Applied **feature scaling** where required
+- Designed for **real-world deployment**, not just notebooks
+"""
+)
+
+# ==================== FOOTER ====================
+st.markdown(
+    """
 ---
-Made with ❤️ by **Khuzaima Amir**  
-🚀 Part of the **100 Data Science Projects Challenge**
-""")
+👨‍💻 **Developed by Khuzaima Amir**  
+🚀 *End-to-End Machine Learning + Streamlit Deployment*
+"""
+)
