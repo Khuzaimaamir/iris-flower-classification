@@ -152,7 +152,6 @@ st.markdown("---")
 st.markdown(
     """
 ### 📌 About This Project
-- Built as part of the **100 Data Science Projects Challenge**
 - Trained and compared **KNN, SVM, Decision Tree & Random Forest**
 - Applied **feature scaling** where required
 - Designed for **real-world deployment**, not just notebooks
@@ -167,3 +166,4 @@ st.markdown(
 🚀 *End-to-End Machine Learning + Streamlit Deployment*
 """
 )
+
